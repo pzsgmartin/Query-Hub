@@ -6,11 +6,13 @@ const queriesData = [
     "subcategory": "Defender for Endpoint",
     "date": "2026-07-07",
     "description": "Retrieves process creation events within a specified time interval.",
-    "query": `let startTime = todatetime("2026-04-30 15:30"); // 2 hours difference 
-let endTime = todatetime("2026-04-30 16:00"); // 2 hours difference 
+    "query": `let startTime = todatetime("YYYY-MM-DD HH:MM");
+let endTime = todatetime("YYYY-MM-DD HH:MM");
+let device_name = "DEVICENAME";
 DeviceProcessEvents
-| where Timestamp between (startTime .. endTime) and DeviceName contains "DEVICENAME"
-| project Timestamp, DeviceName, AccountName, ProcessCommandLine, FileName, FolderPath, ProcessId, InitiatingProcessCommandLine, InitiatingProcessFileName, InitiatingProcessFolderPath, InitiatingProcessId`,
+| where Timestamp between (startTime .. endTime) and DeviceName contains device_name
+| project Timestamp, DeviceName, AccountName, ProcessCommandLine, FileName, FolderPath, ProcessId, InitiatingProcessCommandLine, InitiatingProcessFileName, InitiatingProcessFolderPath, InitiatingProcessId
+| sort by Timestamp asc`,
     "tags": ["mde", "timestamp", "process", "creation", "device"]
   },
   {
@@ -20,13 +22,15 @@ DeviceProcessEvents
     "subcategory": "Defender for Endpoint",
     "date": "2026-07-07",
     "description": "Retrieves file transfer events over network shares.",
-    "query": `let startTime = todatetime("2026-04-30 15:30"); // 2 hours difference 
-let endTime = todatetime("2026-04-30 16:00"); // 2 hours difference 
+    "query": `let startTime = todatetime("YYYY-MM-DD HH:MM");
+let endTime = todatetime("YYYY-MM-DD HH:MM");
+let device_name = "DEVICENAME";
 DeviceFileEvents
 | where Timestamp between (startTime .. endTime)
 | where ActionType == "FileCreated" or ActionType == "FileModified"
-| where FolderPath startswith "\\\\"  and DeviceName contains "DEVICENAME"
-| project Timestamp, InitiatingProcessRemoteSessionDeviceName, InitiatingProcessAccountName, DeviceName, InitiatingProcessCommandLine, InitiatingProcessFileName, FileName, FolderPath, ActionType`,
+| where FolderPath startswith "\\\\"  and DeviceName contains device_name
+| project Timestamp, InitiatingProcessRemoteSessionDeviceName, InitiatingProcessAccountName, DeviceName, InitiatingProcessCommandLine, InitiatingProcessFileName, FileName, FolderPath, ActionType
+| sort by Timestamp asc`,
     "tags": ["mde", "timestamp", "process", "device", "network", "share"]
   },
   {
@@ -36,14 +40,16 @@ DeviceFileEvents
     "subcategory": "Defender for Endpoint",
     "date": "2026-07-07",
     "description": "Retrieves website connection events within a specified time interval..",
-    "query": `let startTime = todatetime("2026-04-30 15:30"); // 2 hours difference 
-let endTime = todatetime("2026-04-30 16:00"); // 2 hours difference 
+    "query": `let startTime = todatetime("YYYY-MM-DD HH:MM");
+let endTime = todatetime("YYYY-MM-DD HH:MM");
+let device_name = "HOSTNAME";
 DeviceNetworkEvents
-| where isnotempty(RemoteUrl) and DeviceName contains "DEVICENAME"
+| where isnotempty(RemoteUrl) and DeviceName contains device_name
 | where Timestamp between (startTime .. endTime)
 | extend VirusTotal = strcat(@"https://www.virustotal.com/gui/domain/", RemoteUrl)
 | extend UrlScan = strcat(@"https://urlscan.io/search/#", RemoteUrl)
-| project Timestamp, DeviceName, InitiatingProcessAccountName, RemoteUrl, InitiatingProcessFileName, VirusTotal, UrlScan`,
+| project Timestamp, DeviceName, InitiatingProcessAccountName, RemoteUrl, InitiatingProcessFileName, VirusTotal, UrlScan
+| sort by Timestamp asc`,
     "tags": ["mde", "timestamp", "connection", "device", "domain", "local2remote"]
   },
     {
@@ -53,7 +59,8 @@ DeviceNetworkEvents
     "subcategory": "Defender for Endpoint",
     "date": "2026-07-07",
     "description": "Retrieves RMM tool execution events.",
-    "query": `let LOLRMM = externaldata(Name:string,Category:string,Description:string,Author:string,Date:datetime,LastModified:datetime,Website:string,Filename:string,OriginalFileName:string,PEDescription:string,Product:string,Privileges:string,Fre::string,Verification:string,SupportedOS:string,Capabilities:string, Vulnerabilities:string,InstallationPaths:string,Artifacts:string,Detections:string,References:string,Acknowledgement:string)[@"https://lolrmm.io/api/rmm_tools.csv"] with (format="csv", ignoreFirstRecord=True);
+    "query": `let device_name = "HOSTNAME";
+let LOLRMM = externaldata(Name:string,Category:string,Description:string,Author:string,Date:datetime,LastModified:datetime,Website:string,Filename:string,OriginalFileName:string,PEDescription:string,Product:string,Privileges:string,Fre::string,Verification:string,SupportedOS:string,Capabilities:string, Vulnerabilities:string,InstallationPaths:string,Artifacts:string,Detections:string,References:string,Acknowledgement:string)[@"https://lolrmm.io/api/rmm_tools.csv"] with (format="csv", ignoreFirstRecord=True);
 let ParsedExecutables = LOLRMM
 	| distinct InstallationPaths
 	| extend FileNames = extract_all(@"\b([a-zA-Z0-9 _-]+\.exe)", InstallationPaths)
@@ -63,7 +70,7 @@ let ParsedExecutables = LOLRMM
 	| distinct FileNames;
 DeviceNetworkEvents
 | where tolower(InitiatingProcessFileName) in (ParsedExecutables)
-| where DeviceName contains "DEVICENAME" and ActionType == "ConnectionSuccess"
+| where DeviceName contains device_name and ActionType == "ConnectionSuccess"
 | project Timestamp, InitiatingProcessAccountName, DeviceName, RemoteIP, RemotePort, RemoteUrl, ActionType, InitiatingProcessFileName, InitiatingProcessCommandLine
 | sort by Timestamp asc`,
     "tags": ["mde", "timestamp", "process", "device", "remote", "rmm", "execution"]
@@ -109,12 +116,12 @@ DeviceNetworkEvents
     "subcategory": "Defender for Identity",
     "date": "2026-07-07",
     "description": " Retrieves a user login baseline.",
-    "query": `EntraIDSignInEventsBeta
-| where AccountUpn contains "AccountUpn" and ErrorCode == "0" // Only successful logins
-// | where IPAddress=="FlaggedIP" // If logins are filtered by IP address
+    "query": `EntraIdSignInEvents
+| where AccountUpn contains "AccountUpn" and ErrorCode == "0"
+// | where IPAddress=="FlaggedIP"
 | project Timestamp, IPAddress, Country, DeviceName, ErrorCode, ClientAppUsed, Application, UserAgent
 | sort by Timestamp desc
-//| summarize count() by Country // Delete the comments "//" in the last last two rows to render piechart.
+//| summarize count() by Country
 //| render piechart`,
     "tags": ["mdi", "timestamp", "signin", "user", "sign-in", "login", "baseline"]
   },
@@ -167,11 +174,17 @@ DeviceNetworkEvents
     "subcategory": "Defender for Cloud",
     "date": "2026-07-07",
     "description": "Retrieves Teams messages sent by external users.",
-    "query": `CloudAppEvents
-| where (RawEventData contains "Recipient_Email" and Application == "Microsoft Teams") and ((ActionType  == "TeamsImpersonationDetected") or (IsExternalUser == "1" and ActionType in ("ChatCreated", "UserAccepted")))
-// TeamsImpersonationDetected: Microsoft detects a user account or external profile that appears to be maliciously mimicking a trusted identity (like spoofing an IT admin name) to deceive others.
-// UserAccepted: This indicates that a user has actively accepted an incoming communication request, such as agreeing to join a external chat or accepting a call from an outside user.
-// CheatCreated: Helps identify when an outside threat actor (IsExternalUser == "1") successfully starts a fresh conversation with an internal employee.`,
+    "query": `let ChatMembers = dynamic(["EMAIL@domain.com", "EMAIL1@domain.com", "SENDERADDRESS@domain.com"]);
+CloudAppEvents
+| where Timestamp > ago(7d)
+| where Application == "Microsoft Teams"
+   and ActionType in ("ChatCreated", "UserAccepted")
+   and IsExternalUser == 1
+| mv-expand Member = RawEventData.Members
+| extend MemberUpn = tolower(tostring(Member.UPN))
+| where MemberUpn in~ (ChatMembers)
+| project Timestamp, ActionType, Application, AccountType, MemberUpn, IPAddress, CountryCode, RawEventData
+| sort by Timestamp desc`,
     "tags": ["mdc", "timestamp", "teams", "user", "external"]
   },
   {
@@ -464,8 +477,7 @@ LAST 30 DAYS`,
     }, 
     key=ParentProcessId, field=TargetProcessId, include=[MD5, ChildFileName, ChildCLI]
   ) 
-| groupBy([aid, FileName, CommandLine, ChildFileName, ChildCLI, MD5], limit=max)
-`,
+| groupBy([aid, FileName, CommandLine, ChildFileName, ChildCLI, MD5], limit=max)`,
     "tags": ["cs", "endpoint", "outlook", "connection"]
   },
   {
@@ -475,8 +487,9 @@ LAST 30 DAYS`,
     "subcategory": "Defender for Endpoint",
     "date": "2026-07-10",
     "description": "Returns all connected and disconnected USB devices.",
-    "query": `DeviceEvents
-| where ActionType == "UsbDriveMounted" and DeviceName contains "HOSTNAME"
+    "query": `let device_name = "DEVICENAME";
+DeviceEvents
+| where ActionType == "UsbDriveMounted" and DeviceName contains device_name
 | extend ParsedFields = parse_json(AdditionalFields)
 | project Timestamp, DeviceName, InitiatingProcessAccountName, 
           DriveLetter = ParsedFields.DriveLetter, 
@@ -493,13 +506,14 @@ LAST 30 DAYS`,
     "subcategory": "Defender for Endpoint",
     "date": "2026-07-10",
     "description": "Returns with installed browser extensions.",
-    "query": `let UnsanctionedExtensions = externaldata (ExtensionID: string) [@'https://raw.githubusercontent.com/jkerai1/SoftwareCertificates/refs/heads/main/Bulk-IOC-CSVs/Intune/Intune%20Browser%20Extension_IDs_the_user_should_be_prevented_from_installing.csv'] with (format=txt);
+    "query": `let device_name = "DEVICENAME";
+let UnsanctionedExtensions = externaldata (ExtensionID: string) [@'https://raw.githubusercontent.com/jkerai1/SoftwareCertificates/refs/heads/main/Bulk-IOC-CSVs/Intune/Intune%20Browser%20Extension_IDs_the_user_should_be_prevented_from_installing.csv'] with (format=txt);
 let RiskyExtensionsWithNames = externaldata (ExtensionID: string,ExtensionURL:string, ExtensionName:string) [@'https://raw.githubusercontent.com/jkerai1/SoftwareCertificates/refs/heads/main/Bulk-IOC-CSVs/Intune/Unsanctioned_extensions_with_names.csv'] with (format=csv, ignoreFirstRecord = true);
 DeviceFileEvents
 | where TimeGenerated > ago(5d)
 | where ActionType == "FileCreated"
 | where FileName endswith ".crx"
-| where DeviceName contains "HOSTNAME"
+| where DeviceName contains device_name
 | where FolderPath contains "Webstore Downloads"
 | extend ExtensionID = trim_end(@"_\d{2,6}.crx", FileName)
 | extend ExtensionURL = strcat("https://chrome.google.com/webstore/detail/",ExtensionID)
@@ -540,5 +554,101 @@ DeviceFileEvents
 | CommandLine=/Outlook\\(?<ShortFile>\w*\\.*)$/i
 | table([@timestamp, aid, TargetProcessId, ShortFile, CommandLine], limit=1000)`,
     "tags": ["crowdstrike", "user", "login"]
+  },
+  {
+    "id": 28,
+    "title": "Remote Monitoring and Management (RMM) Tool Execution - Anydesk",
+    "platform": "darktrace",
+    "subcategory": "DarkTrace",
+    "date": "2026-07-31",
+    "description": "Retrieves Anydesk tool usage related network connections.",
+    "query": `(@fields.dest_port:(80 443 6568) @fields.src_ip:"SOURCEIP") OR (@fields.src_ip:"SOURCEIP" /*.net.anydesk.*/)`,
+    "tags": ["darktrace", "rmm", "anydesk"]
+  },
+  {
+    "id": 29,
+    "title": "Remote Monitoring and Management (RMM) Tool Execution - TeamViewer",
+    "platform": "darktrace",
+    "subcategory": "DarkTrace",
+    "date": "2026-07-31",
+    "description": "Retrieves TeamViewer tool usage related network connections.",
+    "query": `(@fields.src_ip:"SOURCEIP" AND @fields.dest_port:"5938" AND @fields.local_resp:"false") OR (@fields.src_ip:"SOURCEIP" AND (@fields.host: /.*teamviewer.*/ OR @fields.server_name: /.*teamviewer.*/ OR @fields.query: /.*teamviewer.*/ )) OR /.*[Dd]yngate.*/`,
+    "tags": ["darktrace", "rmm", "anydesk"]
+  },
+  {
+    "id": 30,
+    "title": "Remote Monitoring and Management (RMM) Tool Execution - VNC",
+    "platform": "darktrace",
+    "subcategory": "DarkTrace",
+    "date": "2026-07-31",
+    "description": "Retrieves VNC tool usage related network connections.",
+    "query": `(@fields.src_port:(5901 OR 5902 OR 5903 OR 5904 OR 5905 OR 5906 OR 5907 OR 5908 OR 5909 OR 5910) AND @fields.src_ip:"SOURCEIP") OR (@fields.src_ip:"SOURCEIP" AND @fields.src_port:(5900 OR 5901 OR 5902 OR 5903 OR 5904 OR 5905 5906 OR 5907 OR 5908 OR 5909 OR 5910))`,
+    "tags": ["darktrace", "rmm", "anydesk"]
+  },
+  {
+    "id": 31,
+    "title": "Service registration and scheduled task creation",
+    "platform": "defender",
+    "subcategory": "Microsoft Defender for Endpoint",
+    "date": "2026-07-31",
+    "description": "Retrieves registered services and created schedules tasks.",
+    "query": `let startTime = todatetime("2026-04-30 15:30"); // 2 hours difference 
+let endTime = todatetime("2026-04-30 16:00"); // 2 hours difference 
+let device_name = "DEVICENAME";
+DeviceEvents
+| where Timestamp between (startTime .. endTime) and DeviceName contains device_name and FileName !in ("svchost.exe")
+| where ActionType in ("ServiceInstalled", "ServiceStarted", "ScheduledTaskCreated", "ScheduledTaskStarted")
+| extend ParsedFields = parse_json(AdditionalFields)
+| extend ObjectName = case(
+    ActionType startswith "Service", tostring(ParsedFields.ServiceName),
+    ActionType startswith "ScheduledTask", tostring(ParsedFields.TaskName),
+    "N/A"
+)
+| extend ObjectDetail = case(
+    ActionType startswith "Service", tostring(ParsedFields.ServiceType),
+    "N/A"
+)
+| project Timestamp, ActionType, FileName, FolderPath, ObjectName, ObjectDetail
+| sort by Timestamp asc`,
+    "tags": ["defender", "task", "service", "registration"]
+  },
+  {
+    "id": 32,
+    "title": "Informations about an URL in Microsoft Teams chat",
+    "platform": "defender",
+    "subcategory": "Microsoft Defender for Office 365",
+    "date": "2026-07-31",
+    "description": "Retrieves URLs from a specified Microsoft Team chat.",
+    "query": `MessageUrlInfo
+| where TeamsMessageId contains "TEAMS_CHAT_ID"
+| sort by Timestamp asc`,
+    "tags": ["defender", "teams", "url"]
+  },
+  {
+    "id": 33,
+    "title": "User call activities",
+    "platform": "defender",
+    "subcategory": "Microsoft Defender for Office 365",
+    "date": "2026-07-31",
+    "description": "Retrieves the user Microsoft Teams call events.",
+    "query": `CallActivityEvents
+| where ActivityInitiatorUpn == "EMAIL@domain.com"
+| sort by ActivityTimestamp desc`,
+    "tags": ["defender", "teams", "url"]
+  },
+  {
+    "id": 34,
+    "title": "Email trend chart",
+    "platform": "defender",
+    "subcategory": "Microsoft Defender for Office 365",
+    "date": "2026-07-31",
+    "description": "Retrieves a chart by the email trend.",
+    "query": `let Recipient = "EMAIL@domain.com";
+EmailEvents
+| where Timestamp > ago(1d)
+| where RecipientEmailAddress contains Recipient
+| summarize EventCount = count() by bin(Timestamp, 1h)
+| render timechart`,
+    "tags": ["defender", "email", "chart"]
   },
 ];
