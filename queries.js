@@ -657,7 +657,7 @@ EmailEvents
     "platform": "defender",
     "subcategory": "Microsoft Defender for Identity",
     "date": "2026-08-27",
-    "description": "This query detects successful signins from countries that have not been seen before. Depending on where you run this query the lookback period is different, M365D uses 30 days and Sentinel uses 90 days. If you have longer retention periods it is recommended to use longer thresholds.",
+    "description": "This query detects successful signins from countries that have not been seen before",
     "query": `let Lookback = 3d;
 let UPN = "UPN";
 let KnownCountries = EntraIdSignInEvents
@@ -673,6 +673,24 @@ EntraIdSignInEvents
 | where isnotempty(Country)
 | where Country !in (KnownCountries)
 | project Timestamp, Country, UserAgent, ErrorCode, AccountObjectId,AccountDisplayName, IPAddress`,
+    "tags": ["defender", "identity", "entra id", "sign-in"]
+  },
+	{
+    "id": 36,
+    "title": "Successful device code sign-in from unmanaged device",
+    "platform": "defender",
+    "subcategory": "Microsoft Defender for Identity",
+    "date": "2026-08-27",
+    "description": "This query lists successful Entra ID sign-ins were device code authentication is used from an unmanaged device.",
+    "query": `AADSignInEventsBeta
+// Filter only successful sign-ins
+| where ErrorCode == 0
+| where EndpointCall == "Cmsi:Cmsi"
+// Filter on unmanaged devices
+| where isempty(AadDeviceId)
+// Optionally filter only on sign-ins with a risklevel associated with the sign-in
+//| where RiskLevelDuringSignIn in(10, 50, 100)
+| project-reorder TimeGenerated, AccountUpn, EndpointCall, ErrorCode, RiskLevelDuringSignIn, Application, ApplicationId, Country, IPAddress`,
     "tags": ["defender", "identity", "entra id", "sign-in"]
   }
 ];
