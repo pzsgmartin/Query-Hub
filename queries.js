@@ -682,8 +682,11 @@ EntraIdSignInEvents
     "subcategory": "Microsoft Defender for Identity",
     "date": "2026-08-27",
     "description": "This query lists successful Entra ID sign-ins were device code authentication is used from an unmanaged device.",
-    "query": `AADSignInEventsBeta
+    "query": `let Lookback = 3d;
+let UPN = "email_address";
+EntraIdSignInEvents
 // Filter only successful sign-ins
+| where AccountUpn contains UPN and Timestamp > Lookback
 | where ErrorCode == 0
 | where EndpointCall == "Cmsi:Cmsi"
 // Filter on unmanaged devices
@@ -692,5 +695,23 @@ EntraIdSignInEvents
 //| where RiskLevelDuringSignIn in(10, 50, 100)
 | project-reorder TimeGenerated, AccountUpn, EndpointCall, ErrorCode, RiskLevelDuringSignIn, Application, ApplicationId, Country, IPAddress`,
     "tags": ["defender", "identity", "entra id", "sign-in"]
+  },
+	{
+    "id": 37,
+    "title": "List supression rule creations",
+    "platform": "defender",
+    "subcategory": "Microsoft Defender",
+    "date": "2026-08-27",
+    "description": "This query lists supression rule creations.",
+    "query": `CloudAppEvents
+| where ActionType == "Write AlertsSuppressionRules"
+| project
+     Timestamp,
+     ActionType,
+     Application,
+     AccountId,
+     AccountDisplayName,
+     CreatedSupresionRule = ObjectName`,
+    "tags": ["defender", "xdr", "suppression", "rule"]
   }
 ];
