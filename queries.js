@@ -656,8 +656,8 @@ EmailEvents
     "title": "Successful signin from new country",
     "platform": "defender",
     "subcategory": "Microsoft Defender for Identity",
-    "date": "2026-07-31",
-    "description": "Retrieves a chart by the email trend.",
+    "date": "2026-08-27",
+    "description": "This query detects successful signins from countries that have not been seen before. Depending on where you run this query the lookback period is different, M365D uses 30 days and Sentinel uses 90 days. If you have longer retention periods it is recommended to use longer thresholds.",
     "query": `let Lookback = 3d;
 let UPN = "UPN";
 let KnownCountries = EntraIdSignInEvents
@@ -674,5 +674,5 @@ EntraIdSignInEvents
 | where Country !in (KnownCountries)
 | project Timestamp, Country, UserAgent, ErrorCode, AccountObjectId,AccountDisplayName, IPAddress`,
     "tags": ["defender", "identity", "entra id", "sign-in"]
-  },
+  }
 ];
