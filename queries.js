@@ -651,4 +651,28 @@ EmailEvents
 | render timechart`,
     "tags": ["defender", "email", "chart"]
   },
+	{
+    "id": 35,
+    "title": "Successful signin from new country",
+    "platform": "defender",
+    "subcategory": "Microsoft Defender for Identity",
+    "date": "2026-07-31",
+    "description": "Retrieves a chart by the email trend.",
+    "query": `let Lookback = 3d;
+let UPN = "UPN";
+let KnownCountries = EntraIdSignInEvents
+    | where Timestamp > ago(30d) and Timestamp < ago(Lookback)
+    | where AccountUpn contains UPN
+    | where ErrorCode == 0
+    | where isnotempty(Country)
+    | distinct Country;
+EntraIdSignInEvents
+| where Timestamp > ago(Lookback)
+| where AccountUpn contains UPN
+| where ErrorCode == 0
+| where isnotempty(Country)
+| where Country !in (KnownCountries)
+| project Timestamp, Country, UserAgent, ErrorCode, AccountObjectId,AccountDisplayName, IPAddress`,
+    "tags": ["defender", "identity", "entra id", "sign-in"]
+  },
 ];
