@@ -714,4 +714,19 @@ EntraIdSignInEvents
      CreatedSupresionRule = ObjectName`,
     "tags": ["defender", "xdr", "suppression", "rule"]
   }
+	{
+    "id": 36,
+    "title": "Consumer VPN authentications",
+    "platform": "defender",
+    "subcategory": "Microsoft Defender for Identity",
+    "date": "2026-08-27",
+    "description": "This query looks at a list of VPN IP ranges and matches them with IP addresses in SigninLogs data. It then shows the time, user, IP address, and user agent for each match.",
+    "query": `let VPNRanges = externaldata (IpRange:string) [@'https://raw.githubusercontent.com/X4BNet/lists_vpn/main/output/vpn/ipv4.txt'] with (format=txt);
+EntraIdSignInEvents
+| where isnotempty(IPAddress) and AccountUpn contains "UPN"
+| evaluate ipv4_lookup(VPNRanges, IPAddress, IpRange)
+| project Timestamp, IPAddress, Country, DeviceName, ErrorCode, ClientAppUsed, Application, UserAgent
+| sort by Timestamp desc`,
+    "tags": ["defender", "xdr", "identity", "entraidsigninevents"]
+  }
 ];
